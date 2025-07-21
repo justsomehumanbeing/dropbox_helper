@@ -1,78 +1,65 @@
 #!/usr/bin/env python3
-
-import os
-import subprocess
+"""
+Upload LOCAL_FILE_PATH to Dropbox, making sure we never overwrite newer remote content.
+Interactive prompt if remote is newer than our last pull.
+"""
+import argparse, os, subprocess
+from datetime import datetime, timezone
+from pathlib import Path
 import dropbox
 from dropbox_auth import get_dropbox_client
-from datetime import datetime, timezone
-from dropbox_pull import pull
+from dropbox_pull import pull  # reuse temp‑branch logic
+import config
+from base_functions import *
 
-DROPBOX_PATH = "/WeaklyMeanSensitiveTuples/WeaklyMeanSensitiveTuples.tex"  # Remote file path
-LOCAL_PATH = "./WeaklyMeanSensitiveTuples.tex"               # Local file to upload
-TIMESTAMP_LOG = "scripts/.last_sync_time" # Local File for timekeeping
-
-def read_last_pull_time():
+def read_last_pull_time(ts_file: Path):
     try:
-        with open(TIMESTAMP_LOG, "r") as f:
-            timestamp = f.read().strip()
-            dt = datetime.fromisoformat(timestamp)
-            # Alte Log-Einträge enthielten keine TZ-Info → als UTC interpretieren
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
+        txt = ts_file.read_text().strip()
+        dt = datetime.fromisoformat(txt)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     except FileNotFoundError:
         return None
 
 def push():
-    # Ensure the file exists
-    if not os.path.isfile(LOCAL_PATH):
-        print(f"❌ Local file not found: {LOCAL_PATH}")
-        exit(1)
+    opt = cli()
+    # Ensure the file exists:
+    if not opt.local.is_file():
+        raise SystemExit(f"❌ Local file missing: {opt.local}")
 
     try:
         dbx = get_dropbox_client()
-        print(f"Check if there are unpulled changes...")
-        metadata = dbx.files_get_metadata(DROPBOX_PATH)
-        remote_time = metadata.server_modified
-        if remote_time.tzinfo is None:           # Dropbox → naive → UTC dazudenken
+        remote_meta = dbx.files_get_metadata(opt.remote)
+        remote_ts = remote_meta.server_modified
+        # Dropbox is naive so we assume UTC:
+        if remote_time.tzinfo is None:
             remote_time = remote_time.replace(tzinfo=timezone.utc)
-        print(remote_time)
-        local_time = read_last_pull_time()
-        print(local_time)
-        if not local_time or remote_time > local_time:
-            print("⚠️ Dropbox file has been updated *after* your last pull.")
-            confirm = input("❓ Create a temporary Git branch and pull new changes? [y/N] ").strip().lower()
-            if confirm != "y":
-                print("❌ Push aborted to prevent overwriting remote changes.")
-                print("Start pulling to get remote changes.")
-                pull()
-                exit(1)
-            else:
-                print("❌ Push aborted to prevent overwriting remote changes.")
-                exit(1)
+        local_ts  = read_last_pull_time(opt.log)
 
-        print(f"🔼 Uploading {LOCAL_PATH} to {DROPBOX_PATH}...")
+        if not local_ts or remote_ts > local_ts:
+            print("⚠  Remote file is newer than last pull.")
+            if input("Pull first on temporary branch? [y/N] ").strip().lower() == "y":
+                pull()
+            raise SystemExit("Push aborted to protect remote data.")
     except Exception as e:
         print(f"Unexpected error: {e}")
         exit(1)
 
     try:
-        with open(LOCAL_PATH, "rb") as f:
+        print(f"🔼  Uploading {opt.local} → {opt.remote}")
+        with opt.local.open("rb") as fh:
             dbx.files_upload(
-                f.read(),
-                DROPBOX_PATH,
-                mode=dropbox.files.WriteMode.overwrite
+                    fh.read(),
+                    opt.remote,
+                    mode=dropbox.files.WriteMode.overwrite
             )
 
-        print("✅ Upload complete.")
-        # update timestamp
-        os.makedirs(os.path.dirname(TIMESTAMP_LOG), exist_ok=True)
-        with open(TIMESTAMP_LOG, "w") as f:
-            f.write(datetime.now(timezone.utc).isoformat())
-    except Exception as e:
-        print(f"❌ Dropbox push failed: {e}")
-        exit(1)
+        opt.log.parent.mkdir(parents=True, exist_ok=True)
+        opt.log.write_text(datetime.now(tz=timezone.utc).isoformat())
+        print("✅  Upload complete.")
 
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        exit(1)
 
 if __name__ == "__main__":
     push()

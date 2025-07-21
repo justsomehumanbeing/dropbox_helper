@@ -1,52 +1,48 @@
-import dropbox
-import os
 import subprocess
-from dropbox.oauth import DropboxOAuth2FlowNoRedirect
+import dropbox
+from typing import Tuple
+import config
 
-# Load tokens and secrets from pass (this will open GPG prompt if needed)
+# ── helpers:
 
-def get_secrets():
+def _read_from_pass(field: str) -> str:
+    """Return a single secret from pass or raise a crisp RuntimeError."""
     try:
-        APP_KEY = subprocess.check_output(
-            ["pass", "show", "services/uni/dropbox.com/appkey"],
-            text=True
-        ).strip()
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to retrieve app key from pass: {e}")
-        exit(1)
+        return (
+            subprocess.check_output(
+                ["pass", "show", f"{config.PASS_PREFIX}/{field}"],
+                text=True,
+            )
+            .strip()
+        )
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            f"pass: field '{field}' not found under '{config.PASS_PREFIX}'"
+        ) from exc
 
-    try:
-        APP_SECRET = subprocess.check_output(
-            ["pass", "show", "services/uni/dropbox.com/appsecret"],
-            text=True
-        ).strip()
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to retrieve app secret from pass: {e}")
-        exit(1)
 
-    try:
-        REFRESH_TOKEN = subprocess.check_output(
-            ["pass", "show", "services/uni/dropbox.com/refresh_token"],
-            text=True
-        ).strip()
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to retrieve app secret from pass: {e}")
-        exit(1)
+def _get_secret(env_name: str, pass_field: str) -> str:
+    """env ▷ pass ▷ error (no silent None‑returns)."""
+    return getattr(config, env_name) or _read_from_pass(pass_field)
 
-    if not (APP_KEY and APP_SECRET and REFRESH_TOKEN):
-        raise RuntimeError("Missing Dropbox app credentials or refresh token.")
 
-    return (APP_KEY, APP_SECRET, REFRESH_TOKEN)
-
-# Create Dropbox client with auto-refresh support
-def get_dropbox_client():
-
-    (APP_KEY, APP_SECRET, REFRESH_TOKEN) = get_secrets()
-    try: dbx = dropbox.Dropbox(
-        oauth2_refresh_token=REFRESH_TOKEN,
-        app_key=APP_KEY,
-        app_secret=APP_SECRET,
+# ── public API:
+def get_credentials() -> Tuple[str, str, str]:
+    """Fetch (app_key, app_secret, refresh_token) from env / pass."""
+    return (
+        _get_secret("DROPBOX_APP_KEY", "appkey"),
+        _get_secret("DROPBOX_APP_SECRET", "appsecret"),
+        _get_secret("DROPBOX_REFRESH_TOKEN", "refresh_token"),
     )
+
+
+def get_dropbox_client() -> dropbox.Dropbox:
+    """Return an authenticated, auto‑refreshing Dropbox client."""
+    app_key, app_secret, refresh_token = get_credentials()
+    try:
+        dbx = dropbox.Dropbox(  oauth2_refresh_token=refresh_token,
+        app_key=app_key,
+        app_secret=app_secret)
 
     except dropbox.exceptions.AuthError as err:
         print(f"❌ Invalid Dropbox access token: {err}")
