@@ -1,6 +1,9 @@
+"""One-shot helper to exchange an OAuth authorization code for tokens."""
 import dropbox
 import subprocess
 import config
+
+# Credentials are fetched from the user's password store ('pass').
 
 try:
     ACCESS_TOKEN = subprocess.check_output(

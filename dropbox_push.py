@@ -13,6 +13,7 @@ import config
 from base_functions import *
 
 def read_last_pull_time(ts_file: Path):
+    """Return the timestamp stored in *ts_file* or ``None`` if the file is absent."""
     try:
         txt = ts_file.read_text().strip()
         dt = datetime.fromisoformat(txt)
@@ -21,6 +22,7 @@ def read_last_pull_time(ts_file: Path):
         return None
 
 def push():
+    """Upload the configured local file to Dropbox after sanity checks."""
     opt = cli()
     # Ensure the file exists:
     if not opt.local.is_file():
@@ -30,9 +32,9 @@ def push():
         dbx = get_dropbox_client()
         remote_meta = dbx.files_get_metadata(opt.remote)
         remote_ts = remote_meta.server_modified
-        # Dropbox is naive so we assume UTC:
-        if remote_time.tzinfo is None:
-            remote_time = remote_time.replace(tzinfo=timezone.utc)
+        # Dropbox uses naive timestamps, assume UTC
+        if remote_ts.tzinfo is None:
+            remote_ts = remote_ts.replace(tzinfo=timezone.utc)
         local_ts  = read_last_pull_time(opt.log)
 
         if not local_ts or remote_ts > local_ts:

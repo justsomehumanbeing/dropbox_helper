@@ -41,8 +41,14 @@ Pull the data from Dropbox:
 python dropbox_pull.py
 ```
 
-Push local changes back:
+## Technical notes
 
+The scripts rely only on the official Dropbox SDK and do not require
+any additional third-party packages.  All communication with Git is
+done via the command line using ``subprocess``.
+
+Secrets can be supplied via the ``pass``password store (see ``dropbox_auth.py``).
+Temporary branches are created during a pull to avoid polluting ``main``.
+=======
 ```bash
 python dropbox_push.py
-```

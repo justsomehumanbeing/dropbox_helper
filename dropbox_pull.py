@@ -5,7 +5,8 @@ Git branch, keeping your main branch immaculate.
 """
 from datetime import datetime, timezone
 from pathlib import Path
-import argparse
+import argparse, subprocess, os, sys
+
 from dropbox_auth import get_dropbox_client
 import config
 from base_functions import *
@@ -35,6 +36,7 @@ def branch_has_changes_vs(base: str = "main") -> bool:
         sys.exit(1)
 
 def create_temp_branch() -> str:
+    """Create and switch to a uniquely named temporary branch."""
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     name = f"dropbox-pull-{ts}"
     if branch_has_changes_vs():
@@ -45,6 +47,7 @@ def create_temp_branch() -> str:
 
 # ── main pull routine
 def pull():
+    """Download the remote file and commit the result on a temp branch."""
     print("Initiate pull...")
     try:
         opt = cli()
