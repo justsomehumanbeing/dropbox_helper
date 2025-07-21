@@ -4,12 +4,10 @@ Pull a single file from Dropbox *into* the repo and commit it on a temporary
 Git branch, keeping your main branch immaculate.
 """
 from datetime import datetime, timezone
-from pathlib import Path
-import argparse, subprocess, os, sys
+import sys
 
 from dropbox_auth import get_dropbox_client
-import config
-from base_functions import *
+from base_functions import cli, git
 
 def branch_has_changes_vs(base: str = "main") -> bool:
     """

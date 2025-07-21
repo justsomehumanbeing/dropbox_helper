@@ -3,14 +3,12 @@
 Upload LOCAL_FILE_PATH to Dropbox, making sure we never overwrite newer remote content.
 Interactive prompt if remote is newer than our last pull.
 """
-import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 import dropbox
 from dropbox_auth import get_dropbox_client
 from dropbox_pull import pull  # reuse temp‑branch logic
-import config
-from base_functions import *
+from base_functions import cli
 
 def read_last_pull_time(ts_file: Path):
     """Return the timestamp stored in *ts_file* or ``None`` if the file is absent."""
