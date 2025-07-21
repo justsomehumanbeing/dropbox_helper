@@ -5,6 +5,7 @@ Git branch, keeping your main branch immaculate.
 """
 from datetime import datetime, timezone
 import sys
+from pathlib import Path
 
 from dropbox_auth import get_dropbox_client
 from base_functions import cli, git
@@ -20,6 +21,11 @@ def branch_has_changes_vs(base: str = "main") -> bool:
         1 ⇒ there are differences
       other Exit‑Codes ⇒ Error (e.g. Branch does not exist)
     """
+    repo_root = Path(__file__).parent.parent.resolve()
+
+    # ── 2) altes cwd merken und ins Repo‑Root wechseln
+    old_cwd = Path.cwd()
+    os.chdir(repo_root)
     try:
         res = git("diff", "--quiet", base)
         if res.returncode in (0, 1):
@@ -32,6 +38,10 @@ def branch_has_changes_vs(base: str = "main") -> bool:
     except Exception as exc:
         print(f"Error: git diff failed – {exc}", file=sys.stderr)
         sys.exit(1)
+
+    finally:
+        # ── 3) immer ins ursprüngliche Verzeichnis zurückwechseln
+        os.chdir(old_cwd)
 
 def create_temp_branch() -> str:
     """Create and switch to a uniquely named temporary branch."""
