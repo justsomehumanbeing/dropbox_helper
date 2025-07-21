@@ -3,10 +3,9 @@
 Pull a single file from Dropbox *into* the repo and commit it on a temporary
 Git branch, keeping your main branch immaculate.
 """
-from datetime import datetime, timezone
 from pathlib import Path
-import argparse, subprocess
-from dropbox_auth import get_dropbox_client
+import argparse
+import subprocess
 import config
 
 # ── CLI parsing:
