@@ -3,7 +3,7 @@
 Upload LOCAL_FILE_PATH to Dropbox, making sure we never overwrite newer remote content.
 Interactive prompt if remote is newer than our last pull.
 """
-import argparse, os, subprocess
+import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 import dropbox
