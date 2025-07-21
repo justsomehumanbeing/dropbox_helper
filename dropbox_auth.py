@@ -21,18 +21,18 @@ def _read_from_pass(field: str) -> str:
         ) from exc
 
 
-def _get_secret(env_name: str, pass_field: str) -> str:
-    """env ▷ pass ▷ error (no silent None‑returns)."""
-    return getattr(config, env_name) or _read_from_pass(pass_field)
+def _get_secret(pass_field: str) -> str:
+    """Return the secret from pass."""
+    return _read_from_pass(pass_field)
 
 
 # ── public API:
 def get_credentials() -> Tuple[str, str, str]:
-    """Fetch (app_key, app_secret, refresh_token) from env / pass."""
+    """Fetch (app_key, app_secret, refresh_token) from pass."""
     return (
-        _get_secret("DROPBOX_APP_KEY", "appkey"),
-        _get_secret("DROPBOX_APP_SECRET", "appsecret"),
-        _get_secret("DROPBOX_REFRESH_TOKEN", "refresh_token"),
+        _get_secret("appkey"),
+        _get_secret("appsecret"),
+        _get_secret("refresh_token"),
     )
 
 

@@ -1,14 +1,14 @@
 """One-shot helper to exchange an OAuth authorization code for tokens."""
 import dropbox
-import os
 import subprocess
+import config
 
 # Credentials are fetched from the user's password store ('pass').
 
 try:
     ACCESS_TOKEN = subprocess.check_output(
-        ["pass", "show", "services/uni/dropbox.com/apiacesstoken"],
-        text=True
+        ["pass", "show", f"{config.PASS_PREFIX}/apiacesstoken"],
+        text=True,
     ).strip()
 except subprocess.CalledProcessError as e:
     print("❌ Failed to retrieve Dropbox token from pass.")
@@ -16,8 +16,8 @@ except subprocess.CalledProcessError as e:
 
 try:
     APP_KEY = subprocess.check_output(
-        ["pass", "show", "services/uni/dropbox.com/appkey"],
-        text=True
+        ["pass", "show", f"{config.PASS_PREFIX}/appkey"],
+        text=True,
     ).strip()
 except subprocess.CalledProcessError as e:
     print("❌ Failed to retrieve app key from pass.")
@@ -25,8 +25,8 @@ except subprocess.CalledProcessError as e:
 
 try:
     APP_SECRET = subprocess.check_output(
-        ["pass", "show", "services/uni/dropbox.com/appsecret"],
-        text=True
+        ["pass", "show", f"{config.PASS_PREFIX}/appsecret"],
+        text=True,
     ).strip()
 except subprocess.CalledProcessError as e:
     print("❌ Failed to retrieve app secret from pass.")
@@ -35,8 +35,8 @@ except subprocess.CalledProcessError as e:
 
 try:
     ACCESS_CODE = subprocess.check_output(
-        ["pass", "show", "services/uni/dropbox.com/refresh_token"],
-        text=True
+        ["pass", "show", f"{config.PASS_PREFIX}/refresh_token"],
+        text=True,
     ).strip()
 except subprocess.CalledProcessError as e:
     print("❌ Failed to retrieve refresh token from pass.")
